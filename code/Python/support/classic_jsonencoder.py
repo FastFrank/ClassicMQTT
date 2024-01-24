@@ -98,17 +98,9 @@ def encodeClassicData_info(decoded):
     #Assemble the string
     uint_array = [decoded["Name1"],decoded["Name0"],decoded["Name3"],decoded["Name2"],decoded["Name5"],decoded["Name4"],decoded["Name7"],decoded["Name6"]]
     # "deviceName":"CLASSIC",
-#     classicData["deviceName"] = "".join(chr(x) for x in uint_array)
-#     classicData["deviceName"] = "".join("{:02X}".format(x) for x in uint_array)
-    classicData["deviceName"] = ""
-#     classicData["deviceName"] = classicData["deviceName"] + ":"
-    for x in uint_array:
-        if x != 0:
-            classicData["deviceName"] = classicData["deviceName"] + chr(x)   # "{:02X}".format(x) #+ chr(x)
+    classicData["deviceName"] = "".join(chr(x) for x in uint_array).strip(chr(0))
     # "buildDate":"Tuesday, February 6, 2018",
-    #bdate = datetime.date(decoded["Year"],decoded["Month"],decoded["Day"])
-    #classicData["buildDate"] = bdate.strftime("%A, %B %d, %Y").replace(' 0', ' ') # get rid of the stupid leading 0 in date.
-    classicData["buildDate"] = "{}-{}-{}".format(decoded["Year"],decoded["Month"],decoded["Day"])
+    classicData["buildDate"] = bdate.strftime("%A, %B %d, %Y").replace(' 0', ' ') # get rid of the stupid leading 0 in date.
     # "deviceType":"Classic",
     classicData["deviceType"] = "Classic"
     # "endingAmps":13.01,
@@ -131,6 +123,7 @@ def encodeClassicData_info(decoded):
 
     mac = "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}".format(decoded["mac_5"],decoded["mac_4"],decoded["mac_3"],decoded["mac_2"],decoded["mac_1"],decoded["mac_0"])
     classicData["macAddress"] = mac.upper()
+
     classicData["IP"] = decoded["IP"]
 
     return json.dumps(classicData, sort_keys=False, separators=(',', ':'))
@@ -148,6 +141,5 @@ def decodeCTIME( CTIME0, CTIME1, CTIME2):
     tyear = (CTIME1 & 0x0FFF0000) >> 16
     # CTIME2 - BITS 11:0 day of year
     tdyoy = (CTIME2 & 0x000007FF)    #  1FF
-    #tmnth = decoded["CTIME2"] && 0x00000000
-    #return "{:04n}-{:02n}-{:02n} {:02n}:{:02n}:{:02n} dow:{} doy:{} {:08x}".format(tyear,tmnth,tdyom,thour,tmins,tsecs,tdyow,tdyoy,CTIME2)
+    #
     return "{:04n}-{:02n}-{:02n} {:02n}:{:02n}:{:02n}".format(tyear,tmnth,tdyom,thour,tmins,tsecs)

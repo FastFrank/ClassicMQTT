@@ -15,7 +15,6 @@ try:
 except ImportError:
     from pymodbus.client.sync import ModbusTcpClient as ModbusClient  # pymodbus 2
     MODBUS_VERSION = 2
-#from pymodbus.compat import iteritems
 from collections import OrderedDict
 import logging
 import sys
@@ -180,7 +179,7 @@ def getModbusData(modeAwake, classicHost, classicPort):
             log.debug("Opening the modbus Connection")
             if modbusClient is None:
                 modbusClient = ModbusClient(host=classicHost, port=classicPort)
-    
+
             #Test for successful connect, if not, log error and mark modbusConnected = False
             modbusClient.connect()
 
@@ -188,7 +187,7 @@ def getModbusData(modeAwake, classicHost, classicPort):
                 result = modbusClient.read_holding_registers(4163, 2, unit=10)
             else:
                 result = modbusClient.read_holding_registers(4163, 2, slave=10)
-                
+
             if result.isError():
                 # close the client
                 log.error("MODBUS isError H:{} P:{}".format(classicHost, classicPort))
@@ -233,14 +232,14 @@ def getModbusData(modeAwake, classicHost, classicPort):
     decoded = {}
     for index in theData:
         decoded = {**dict(decoded), **dict(doDecode(index, getDataDecoder(theData[index])))}
-    
+
     # Device type 251 is different
     if decoded['Type'] == 251:
         decoded['Type'] = '250 KS'
-    
+
     # IP number
     decoded['IP'] = classicHost
-    
+
     # Charge State icon
     decoded['ChargeStateIcon'] = 'mdi:music-rest-whole'
     if decoded['ChargeStage'] == 3 or decoded['ChargeStage'] == 4:
@@ -261,7 +260,7 @@ def getModbusData(modeAwake, classicHost, classicPort):
         18: 'Equalize MPPT',
         }
     decoded['ChargeStateText'] = chrg_stt_txt_arr[decoded['ChargeStage']]
-    
+
     # SOC icon
     SOCicon = "mdi:battery-"
     if decoded["ChargeStage"] == 3 or decoded["ChargeStage"] == 4:
@@ -303,11 +302,11 @@ def getModbusData(modeAwake, classicHost, classicPort):
         33: "OCP in a mode other than Solar or PV-Uset",
         34: "AD1CH.IbattMinus > 900 Peak negative battery current > 90.0 amps (Classic 150, 200)",
         35: "Battery voltage is less than Low Battery Disconnect (LBD) Typically Vbatt is less than 8.5 volts",
-        104: "104?: PV input is available but V is rising too slowly. Low Light or bad connection(Solar mode)",
+        104: "104?=14?: PV input is available but V is rising too slowly. Low Light or bad connection(Solar mode)",
         }
     try:
         decoded["ReasonForRestingText"] = rest_reason_arr[decoded["ReasonForResting"]]
     except:
         log.error("ReasonForRestingText Error ")
-    
+
     return decoded

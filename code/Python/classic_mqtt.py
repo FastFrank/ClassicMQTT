@@ -25,9 +25,9 @@ from time import time_ns
 # --------------------------------------------------------------------------- # 
 # GLOBALS
 # --------------------------------------------------------------------------- # 
-MAX_WAKE_RATE               = 30        #in seconds
-MIN_WAKE_RATE               = 15        #in seconds
-DEFAULT_WAKE_RATE           = 30        #in seconds
+MAX_WAKE_RATE               = 15        #in seconds
+MIN_WAKE_RATE               = 2         #in seconds
+DEFAULT_WAKE_RATE           = 5         #in seconds
 MIN_WAKE_PUBLISHES          = 15        #minimum number of publishes before snoozing this * wake_rate = time awake
 DEFAULT_WAKE_PUBLISHES      = 60        #default number of publishes before switching to snooze
 
@@ -43,11 +43,11 @@ MAIN_LOOP_SLEEP_SECS        = 5         #Seconds to sleep in the main loop
 # Default startup values. Can be over-ridden by command line options.
 # --------------------------------------------------------------------------- # 
 argumentValues = { \
-    'classicHost':os.getenv('CLASSIC', "192.168.1.175"), \
+    'classicHost':os.getenv('CLASSIC', "ClassicHost"), \
     'classicPort':os.getenv('CLASSIC_PORT', "502"), \
-    'classicName':os.getenv('CLASSIC_NAME', "Classic"), \
-    'mqttHost':os.getenv('MQTT_HOST', "192.168.178.200"), \
-    'mqttPort':os.getenv('MQTT_PORT', "18883"), \
+    'classicName':os.getenv('CLASSIC_NAME', "classic"), \
+    'mqttHost':os.getenv('MQTT_HOST', "127.0.0.1"), \
+    'mqttPort':os.getenv('MQTT_PORT', "1883"), \
     'mqttRoot':os.getenv('MQTT_ROOT', "ClassicMQTT"), \
     'mqttUser':os.getenv('MQTT_USER', "ClassicPublisher"), \
     'mqttPassword':os.getenv('MQTT_PASS', "ClassicPub123"), \
@@ -62,7 +62,7 @@ infoPublished               = False
 stayAwake                   = False
 mqttConnected               = False
 doStop                      = False
-modeAwake                   = True
+modeAwake                   = False
 
 modbusErrorCount            = 0
 mqttErrorCount              = 0
