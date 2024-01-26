@@ -39,6 +39,8 @@ MODBUS_MAX_ERROR_COUNT      = 300       #Number of errors on the MODBUS before t
 MQTT_MAX_ERROR_COUNT        = 300       #Number of errors on the MQTT before the tool exits
 MAIN_LOOP_SLEEP_SECS        = 5         #Seconds to sleep in the main loop
 
+HA_ENABLED                  = False     #Home-Assistant Auto Discovery
+
 # --------------------------------------------------------------------------- # 
 # Default startup values. Can be over-ridden by command line options.
 # --------------------------------------------------------------------------- # 
@@ -53,7 +55,9 @@ argumentValues = { \
     'mqttPassword':os.getenv('MQTT_PASS', "ClassicPub123"), \
     'awakePublishRate':int(os.getenv('AWAKE_PUBLISH_RATE', str(DEFAULT_WAKE_RATE))), \
     'snoozePublishRate':int(os.getenv('SNOOZE_PUBLISH_RATE', str(DEFAULT_SNOOZE_RATE))), \
-    'awakePublishLimit':int(os.getenv('AWAKE_PUBLISH_LIMIT', str(DEFAULT_WAKE_PUBLISHES)))}
+    'awakePublishLimit':int(os.getenv('AWAKE_PUBLISH_LIMIT', str(DEFAULT_WAKE_PUBLISHES))), \
+    'homeassistant':os.getenv('HA_ENABLED', str(HA_ENABLED)) \
+    }
 
 # --------------------------------------------------------------------------- # 
 # Counters and status variables
@@ -72,6 +76,7 @@ snoozePublishCycles         = 0      #How many cycles have gone by?
 snoozeCycleLimit            = 0      #How many cycles before I publish in snooze mode (changes with wake rate)
 currentPollRate             = DEFAULT_WAKE_RATE
 mqttClient                  = None
+homeassistantEnabled        = False
 
 mqttDeviceModel             = 'Classic'
 mqttDeviceFirmware          = ''
@@ -375,7 +380,7 @@ def timeToPublish():
 # --------------------------------------------------------------------------- # 
 def periodic(modbus_stop):    
 
-    global mqttClient, modbusErrorCount, infoPublished, mqttErrorCount, currentPollRate, mqttLastSOCicon, mqttLastCSicon
+    global mqttClient, modbusErrorCount, infoPublished, mqttErrorCount, currentPollRate, mqttLastSOCicon, mqttLastCSicon, homeassistantEnabled
 
     if not modbus_stop.is_set():
         #Get the current time as a float of seconds.
@@ -391,12 +396,14 @@ def periodic(modbus_stop):
                     #
                     modbusErrorCount = 0
                     if (not infoPublished): #Check if the Info has been published yet
-                        log.debug("Call mqttHAautodiscovery" )
-                        mqttHAautodiscovery( data )
-                        # wait 1 second for HA to receive and create device
-                        time.sleep(1)
-                        log.debug("Done mqttHAautodiscovery" )
                         #
+                        if ( argumentValues['homeassistant'] == True ): #Check if HA_enabled is true
+                            log.debug("Call mqttHAautodiscovery" )
+                            mqttHAautodiscovery( data )
+                            # wait 1 second for HA to receive and create device
+                            time.sleep(1)
+                            log.debug("Done mqttHAautodiscovery" )
+                            #
                         if mqttPublish(mqttClient,encodeClassicData_info(data),"info"):
                             infoPublished = True
                             time.sleep(1)
@@ -404,17 +411,19 @@ def periodic(modbus_stop):
                             mqttErrorCount += 1
                         #
                     if mqttPublish(mqttClient,encodeClassicData_readings(data),"readings"):
-                        # re-send ChargeState because of icon
-                        if mqttLastCSicon != data["ChargeStateIcon"]:
-                            mqttLastCSicon = data["ChargeStateIcon"]
-                            log.debug("Call CS mqttHApublish {}".format(mqttLastCSicon) )
-                            mqttHApublish( 'ChargeState', 'Charge State', '', '"icon": "'+ data["ChargeStateIcon"] + '", ', 'readings', '', data )
-                            mqttHApublish( 'ChargeStateText', 'Charge State Text', '', '"icon": "'+data['ChargeStateIcon']+'", ', 'readings', '{{ {0: \'Resting\',3: \'Absorb\',4: \'Bulk MPPT\',5: \'Float\',6: \'Float MPPT\',7: \'Equalize\',10: \'HyperVOC\',18: \'Equalize MPPT\'}[value_json.ChargeState]}}', data )
-                        # re-send SOC because of icon
-                        if mqttLastSOCicon != data["SOCicon"]:
-                            mqttLastSOCicon = data["SOCicon"]
-                            log.debug("Call SOC mqttHApublish {}".format(mqttLastSOCicon) )
-                            mqttHApublish( 'SOC', 'Charge SOC', '"unit_of_meas": "%", "state_class": "measurement", ', '"icon": "'+ data["SOCicon"] + '", ', 'readings', '', data )
+                        #
+                        if ( argumentValues['homeassistant'] == True ): #Check if HA_enabled is true
+                            # re-send ChargeState because of icon
+                            if mqttLastCSicon != data["ChargeStateIcon"]:
+                                mqttLastCSicon = data["ChargeStateIcon"]
+                                log.debug("Call CS mqttHApublish {}".format(mqttLastCSicon) )
+                                mqttHApublish( 'ChargeState', 'Charge State', '', '"icon": "'+ data["ChargeStateIcon"] + '", ', 'readings', '', data )
+                                mqttHApublish( 'ChargeStateText', 'Charge State Text', '', '"icon": "'+data['ChargeStateIcon']+'", ', 'readings', '{{ {0: \'Resting\',3: \'Absorb\',4: \'Bulk MPPT\',5: \'Float\',6: \'Float MPPT\',7: \'Equalize\',10: \'HyperVOC\',18: \'Equalize MPPT\'}[value_json.ChargeState]}}', data )
+                            # re-send SOC because of icon
+                            if mqttLastSOCicon != data["SOCicon"]:
+                                mqttLastSOCicon = data["SOCicon"]
+                                log.debug("Call SOC mqttHApublish {}".format(mqttLastSOCicon) )
+                                mqttHApublish( 'SOC', 'Charge SOC', '"unit_of_meas": "%", "state_class": "measurement", ', '"icon": "'+ data["SOCicon"] + '", ', 'readings', '', data )
                     else:
                         mqttErrorCount += 1
 
@@ -443,7 +452,7 @@ def periodic(modbus_stop):
 # --------------------------------------------------------------------------- # 
 def run(argv):
 
-    global doStop, mqttClient, awakePublishCycles, snoozePublishCycles, currentPollRate, snoozeCycleLimit, mqttLastSOCicon, mqttLastCSicon
+    global doStop, mqttClient, awakePublishCycles, snoozePublishCycles, currentPollRate, snoozeCycleLimit, mqttLastSOCicon, mqttLastCSicon, homeassistantEnabled
 
     log.info("classic_mqtt starting up...")
 
@@ -457,6 +466,8 @@ def run(argv):
     snoozePublishCycles =  argumentValues['snoozePublishRate']
 
     currentPollRate = argumentValues['awakePublishRate']
+
+    homeassistantEnabled = argumentValues['homeassistant']
 
     #random seed from the OS
     seed(int.from_bytes( os.urandom(4), byteorder="big"))
